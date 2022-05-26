@@ -3,7 +3,10 @@
 import os
 import torch
 import numpy as np
+# from skimage.transform import resize
+# import imageio
 import scipy.misc as m
+from PIL import Image
 
 from torch.utils import data
 
@@ -230,7 +233,7 @@ if __name__ == '__main__':
     augmentations = Compose([RandomRotate(10),
                              RandomHorizontallyFlip()])
 
-    local_path = '/home/ozansener/Data/cityscapes/'
+    local_path = '/home/lyma/SHARE_DATA/data_depth/Cityscapes'
     dst = CITYSCAPES(local_path, is_transform=True, augmentations=augmentations)
     bs = 4
     trainloader = data.DataLoader(dst, batch_size=bs, num_workers=0)

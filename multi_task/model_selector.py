@@ -40,12 +40,12 @@ def get_model(params):
                 model['S'] = nn.DataParallel(model['S'])
             model['S'].cuda()
         if 'I' in params['tasks']:
-            model['I'] = SegmentationDecoder(num_class=2, task_type='R')
+            model['I'] = SegmentationDecoder(num_class=2, task_type='I')
             if params['parallel']:
-                model['R'] = nn.DataParallel(model['R'])
+                model['I'] = nn.DataParallel(model['I'])
             model['I'].cuda()
         if 'D' in params['tasks']:
-            model['D'] = SegmentationDecoder(num_class=1, task_type='R')
+            model['D'] = SegmentationDecoder(num_class=1, task_type='D')
             if params['parallel']:
                 model['D'] = nn.DataParallel(model['D'])
             model['D'].cuda()

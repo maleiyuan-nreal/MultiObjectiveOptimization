@@ -38,13 +38,13 @@ def train_multi_task(param_file):
 
     exp_identifier = []
     for (key, val) in params.items():
-        if 'tasks' in key:
+        if 'tasks' in key or 'scales' in key:
             continue
         exp_identifier+= ['{}={}'.format(key,val)]
 
     exp_identifier = '|'.join(exp_identifier)
     params['exp_id'] = exp_identifier
-
+    print(exp_identifier)
     writer = SummaryWriter(log_dir='runs/{}_{}'.format(params['exp_id'], datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
     train_loader, train_dst, val_loader, val_dst = datasets.get_dataset(params, configs)
@@ -73,6 +73,8 @@ def train_multi_task(param_file):
             print('Using approximate min-norm solver')
         else:
             print('Using full solver')
+            
+            
     n_iter = 0
     loss_init = {}
     for epoch in tqdm(range(NUM_EPOCHS)):
@@ -88,18 +90,18 @@ def train_multi_task(param_file):
             model[m].train()
 
         for batch in train_loader:
+            if n_iter % 100 == 0:
+                print(n_iter)
             n_iter += 1
             # First member is always images
-            images = batch[0]
-            images = Variable(images.cuda())
+            images = batch[0].cuda()
 
             labels = {}
             # Read all targets of all tasks
             for i, t in enumerate(all_tasks):
                 if t not in tasks:
                     continue
-                labels[t] = batch[i+1]
-                labels[t] = Variable(labels[t].cuda())
+                labels[t] = batch[i+1].cuda()
 
             # Scaling the loss functions based on the algorithm choice
             loss_data = {}
@@ -113,8 +115,8 @@ def train_multi_task(param_file):
                 if approximate_norm_solution:
                     optimizer.zero_grad()
                     # First compute representations (z)
-                    images_volatile = Variable(images.data, volatile=True)
-                    rep, mask = model['rep'](images_volatile, mask)
+                    with torch.no_grad():
+                        rep, mask = model['rep'](images, mask)
                     # As an approximate solution we only need gradients for input
                     if isinstance(rep, list):
                         # This is a hack to handle psp-net
@@ -130,7 +132,7 @@ def train_multi_task(param_file):
                         optimizer.zero_grad()
                         out_t, masks[t] = model[t](rep_variable, None)
                         loss = loss_fn[t](out_t, labels[t])
-                        loss_data[t] = loss.data[0]
+                        loss_data[t] = loss.item()
                         loss.backward()
                         grads[t] = []
                         if list_rep:
@@ -175,7 +177,7 @@ def train_multi_task(param_file):
             for i, t in enumerate(tasks):
                 out_t, _ = model[t](rep, masks[t])
                 loss_t = loss_fn[t](out_t, labels[t])
-                loss_data[t] = loss_t.data[0]
+                loss_data[t] = loss_t.item()
                 if i > 0:
                     loss = loss + scale[t]*loss_t
                 else:
@@ -183,7 +185,7 @@ def train_multi_task(param_file):
             loss.backward()
             optimizer.step()
 
-            writer.add_scalar('training_loss', loss.data[0], n_iter)
+            writer.add_scalar('training_loss', loss.item(), n_iter)
             for t in tasks:
                 writer.add_scalar('training_loss_{}'.format(t), loss_data[t], n_iter)
 
@@ -199,22 +201,26 @@ def train_multi_task(param_file):
 
         num_val_batches = 0
         for batch_val in val_loader:
-            val_images = Variable(batch_val[0].cuda(), volatile=True)
-            labels_val = {}
+            val_images, lbl, ins_gt, depth = batch_val
+            val_images = val_images.cuda()
+            labels_val = dict()
 
             for i, t in enumerate(all_tasks):
                 if t not in tasks:
                     continue
-                labels_val[t] = batch_val[i+1]
-                labels_val[t] = Variable(labels_val[t].cuda(), volatile=True)
-
-            val_rep, _ = model['rep'](val_images, None)
+                labels_val[t] = batch_val[i+1].cuda()
+            pred_dict = dict()
+            with torch.no_grad():
+                val_rep, _ = model['rep'](val_images, None)
+                for t in tasks:
+                    out_t_val, _ = model[t](val_rep, None)
+                    pred_dict[t] = out_t_val
+                    
             for t in tasks:
-                out_t_val, _ = model[t](val_rep, None)
-                loss_t = loss_fn[t](out_t_val, labels_val[t])
-                tot_loss['all'] += loss_t.data[0]
-                tot_loss[t] += loss_t.data[0]
-                metric[t].update(out_t_val, labels_val[t])
+                loss_t = loss_fn[t](pred_dict[t], labels_val[t])
+                tot_loss['all'] += loss_t.item()
+                tot_loss[t] += loss_t.item()
+                metric[t].update(pred_dict[t], labels_val[t])
             num_val_batches+=1
 
         for t in tasks:
