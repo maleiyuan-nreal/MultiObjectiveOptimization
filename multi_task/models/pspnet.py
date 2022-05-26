@@ -104,10 +104,10 @@ class SegmentationDecoder(nn.Module):
         input_size = conv5.size()
         ppm_out = [conv5]
         for pool_scale in self.ppm:
-            ppm_out.append(nn.functional.upsample(
+            ppm_out.append(nn.functional.interpolate(
                 pool_scale(conv5),
                 (input_size[2], input_size[3]),
-                mode='bilinear'))
+                mode='bilinear', align_corners=True))
         ppm_out = torch.cat(ppm_out, 1)
 
         x = self.conv_last(ppm_out)

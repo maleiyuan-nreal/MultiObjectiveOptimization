@@ -5,7 +5,7 @@
     },
 
     "cityscapes": {
-        "path": "/home/lyma/SHARE_DATA/data_depth/Cityscapes",
+        "path": "/home/lyma/Cityscapes",
         "all_tasks": ["S", "I", "D"],
         "img_rows": 256,
         "img_cols": 512

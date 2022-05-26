@@ -4,6 +4,7 @@ import click
 import json
 import datetime
 from timeit import default_timer as timer
+import os
 
 import numpy as np
 
@@ -47,7 +48,7 @@ def train_multi_task(param_file):
     print(exp_identifier)
     writer = SummaryWriter(log_dir='runs/{}_{}'.format(params['exp_id'], datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
 
-    train_loader, train_dst, val_loader, val_dst = datasets.get_dataset(params, configs)
+    train_loader, train_dst, val_loader, val_dst, test_loader, test_dst = datasets.get_dataset(params, configs)
     loss_fn = losses.get_loss(params)
     metric = metrics.get_metrics(params)
 
@@ -231,16 +232,16 @@ def train_multi_task(param_file):
             metric[t].reset()
         writer.add_scalar('validation_loss', tot_loss['all']/len(val_dst), n_iter)
 
-        if epoch % 3 == 0:
+        # if epoch % 3 == 0:
             # Save after every 3 epoch
-            state = {'epoch': epoch+1,
-                    'model_rep': model['rep'].state_dict(),
-                    'optimizer_state' : optimizer.state_dict()}
-            for t in tasks:
-                key_name = 'model_{}'.format(t)
-                state[key_name] = model[t].state_dict()
+        state = {'epoch': epoch+1,
+                'model_rep': model['rep'].state_dict(),
+                'optimizer_state' : optimizer.state_dict()}
+        for t in tasks:
+            key_name = 'model_{}'.format(t)
+            state[key_name] = model[t].state_dict()
 
-            torch.save(state, "saved_models/{}_{}_model.pkl".format(params['exp_id'], epoch+1))
+        torch.save(state, "/data/lyma/MTL/{}_{}_model.pkl".format(params['exp_id'], epoch+1))
 
         end = timer()
         print('Epoch ended in {}s'.format(end - start))
