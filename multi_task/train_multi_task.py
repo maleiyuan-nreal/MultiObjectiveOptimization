@@ -202,7 +202,7 @@ def train_multi_task(param_file):
 
         num_val_batches = 0
         for batch_val in val_loader:
-            val_images, lbl, ins_gt, depth = batch_val
+            val_images, lbl, ins_gt, depth, _ = batch_val
             val_images = val_images.cuda()
             labels_val = dict()
 

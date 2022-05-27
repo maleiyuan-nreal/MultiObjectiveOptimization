@@ -134,7 +134,7 @@ class CITYSCAPES(data.Dataset):
         if self.is_transform:
             img, lbl, ins_gt, depth = self.transform(img, lbl, ins_y, ins_x, depth)
 
-        return img, lbl, ins_gt, depth
+        return img, lbl, ins_gt, depth, img_path
 
     def transform(self, img, lbl, ins_y, ins_x, depth):
         """transform
