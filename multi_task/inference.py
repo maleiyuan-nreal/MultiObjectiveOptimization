@@ -37,7 +37,7 @@ model = model_selector.get_model(params)
 print(model.keys())
 tasks = params['tasks']
 
-stat_dict = torch.load("/data/lyma/MTL/optimizer=Adam|batch_size=8|lr=0.0005|dataset=cityscapes|normalization_type=none|algorithm=mgda|use_approximation=True|parallel=False_33_model.pkl")
+stat_dict = torch.load("/data/lyma/MTL/optimizer=Adam|batch_size=8|lr=0.0005|dataset=cityscapes|normalization_type=none|algorithm=mgda|use_approximation=True|parallel=False_20_model.pkl")
 print(stat_dict.keys())
 
 # for k in 
@@ -86,7 +86,7 @@ with torch.no_grad():
                 pred_depth,
                 (img_size[0], img_size[1]),
                 mode='bilinear', align_corners=True).squeeze().cpu().numpy()
-        pred_depth = pred_depth*DEPTH_STD+DEPTH_MEAN
+        # pred_depth = pred_depth*DEPTH_STD+DEPTH_MEAN
         # print(pred_depth.shape, pred_depth[0,:,:].shape)
         # cv2.imwrite("depth.jpg", process_depth(pred_depth[0,:,:], np.min(pred_depth[0,:,:]), np.max(pred_depth[0,:,:])) )
         image_name, suffix = get_file_name(img_path[0]).split(".")
